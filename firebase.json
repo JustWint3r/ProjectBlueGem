@@ -9,11 +9,8 @@
     "rewrites": [
       {
         "source": "**",
-        "run": {
-          "serviceId": "steam-market-monitor",
-          "region": "us-central1"
-        }
+        "destination": "/index.html"
       }
     ]
   }
-} 
+}
