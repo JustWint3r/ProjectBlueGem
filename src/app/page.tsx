@@ -5,6 +5,7 @@ import ItemGrid from './components/ItemGrid';
 import Notifications from './components/Notifications';
 import TargetSeedList from './components/TargetSeedList';
 import { IItem } from '@/models/Item';
+import { Socket, io } from 'socket.io-client';
 
 // Target paint seeds we're looking for
 const TARGET_PAINT_SEEDS = [16, 48, 66, 67, 96, 111, 117, 159, 259, 263, 273, 297, 308, 321, 324, 341, 347, 370, 426, 461, 482, 517, 530, 567, 587, 674, 695, 723, 764, 772, 781, 790, 792, 843, 880, 885, 904, 948, 990];
@@ -20,23 +21,90 @@ export default function Home() {
   const [items, setItems] = useState<IItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
 
-  // Fetch items when component mounts and periodically after that
+  // Initialize WebSocket connection
+  useEffect(() => {
+    const socketInstance = io({
+      path: '/socket.io',
+    });
+
+    // Socket connection event handlers
+    socketInstance.on('connect', () => {
+      console.log('WebSocket connected');
+      setIsConnected(true);
+    });
+
+    socketInstance.on('disconnect', () => {
+      console.log('WebSocket disconnected');
+      setIsConnected(false);
+    });
+
+    socketInstance.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+
+    // Listen for new items
+    socketInstance.on('newItem', (item: IItem) => {
+      console.log('New item received:', item);
+      
+      // Add to items list
+      setItems((prevItems) => [item, ...prevItems]);
+      
+      // Create notification
+      const notification: Notification = {
+        id: `new-${Date.now()}-${item.paintSeed}-${item.floatValue}`,
+        type: 'new',
+        item,
+        timestamp: new Date(),
+      };
+      
+      setNotifications((prev) => [notification, ...prev]);
+      
+      // Play notification sound
+      const audio = new Audio('/notification.mp3');
+      audio.play().catch(e => console.log('Failed to play notification sound', e));
+    });
+
+    // Listen for removed items
+    socketInstance.on('itemRemoved', (item: IItem) => {
+      console.log('Item removed:', item);
+      
+      // Remove from items list
+      setItems((prevItems) => 
+        prevItems.filter(
+          (i) => !(i.paintSeed === item.paintSeed && i.floatValue === item.floatValue)
+        )
+      );
+      
+      // Create notification
+      const notification: Notification = {
+        id: `removed-${Date.now()}-${item.paintSeed}-${item.floatValue}`,
+        type: 'removed',
+        item,
+        timestamp: new Date(),
+      };
+      
+      setNotifications((prev) => [notification, ...prev]);
+    });
+
+    setSocket(socketInstance);
+    
+    // Cleanup on unmount
+    return () => {
+      socketInstance.disconnect();
+    };
+  }, []);
+
+  // Fetch initial items when component mounts
   useEffect(() => {
     const fetchItems = async () => {
       try {
         setLoading(true);
         const response = await fetch('/api/items');
         const data = await response.json();
-        
-        // Check for new or removed items if we have previous data
-        if (lastFetchTime && items.length > 0) {
-          checkForChanges(data);
-        }
-        
         setItems(data);
-        setLastFetchTime(new Date());
       } catch (error) {
         console.error('Error fetching items:', error);
       } finally {
@@ -44,56 +112,8 @@ export default function Home() {
       }
     };
 
-    // Function to check for changes and create notifications
-    const checkForChanges = (newData: IItem[]) => {
-      // Map current items for easy lookup
-      const currentItemsMap = new Map();
-      items.forEach(item => {
-        currentItemsMap.set(`${item.paintSeed}-${item.floatValue}`, item);
-      });
-      
-      // Check for new items
-      for (const item of newData) {
-        const key = `${item.paintSeed}-${item.floatValue}`;
-        if (!currentItemsMap.has(key)) {
-          // New item found
-          const notification: Notification = {
-            id: `new-${Date.now()}-${key}`,
-            type: 'new',
-            item,
-            timestamp: new Date(),
-          };
-          setNotifications(prev => [notification, ...prev]);
-          
-          // Play sound
-          const audio = new Audio('/notification.mp3');
-          audio.play().catch(e => console.log('Failed to play notification sound', e));
-        }
-        
-        // Remove from map to track what's no longer available
-        currentItemsMap.delete(key);
-      }
-      
-      // Anything left in the map is no longer available
-      for (const [key, item] of currentItemsMap.entries()) {
-        const notification: Notification = {
-          id: `removed-${Date.now()}-${key}`,
-          type: 'removed',
-          item,
-          timestamp: new Date(),
-        };
-        setNotifications(prev => [notification, ...prev]);
-      }
-    };
-
-    // Fetch immediately
     fetchItems();
-    
-    // Then set up interval (every 30 seconds)
-    const intervalId = setInterval(fetchItems, 30000);
-    
-    return () => clearInterval(intervalId);
-  }, [items, lastFetchTime]);
+  }, []);
 
   // Remove notifications after 10 seconds
   useEffect(() => {
@@ -132,8 +152,17 @@ export default function Home() {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">Desert Eagle | Heat Treated Monitor</h1>
           <p className="mt-2 text-gray-600">
-            Monitoring Steam Market for specific pattern seeds. Database refreshes every 30 seconds.
+            Monitoring Steam Market for specific pattern seeds. Real-time notifications via WebSockets.
           </p>
+          {isConnected ? (
+            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+              <span className="h-2 w-2 rounded-full bg-green-500 mr-2"></span> Connected
+            </div>
+          ) : (
+            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+              <span className="h-2 w-2 rounded-full bg-red-500 mr-2"></span> Disconnected
+            </div>
+          )}
         </div>
 
         <div className="bg-white shadow-md rounded-lg p-6">
@@ -159,7 +188,7 @@ export default function Home() {
           <p>
             This tool monitors the Steam Market for Desert Eagle | Heat Treated skins with specific paint seeds.
             <br />
-            Data refreshes automatically every 30 seconds. Full market scans run once daily at midnight.
+            Updates are received in real-time through WebSockets. Background scans run every 5 minutes.
           </p>
         </div>
       </div>

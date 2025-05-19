@@ -6,11 +6,15 @@ import { startWorker } from './services/workerService';
 import dbConnect from './lib/mongodb';
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
-const port = parseInt(process.env.PORT || '3000', 10);
+const hostname = dev ? 'localhost' : '0.0.0.0'; // Use 0.0.0.0 in production for Cloud Run
+const port = parseInt(process.env.PORT || '8080', 10); // Default to 8080 for Cloud Run
 
 // Initialize Next.js app
-const app = next({ dev, hostname, port });
+const app = next({ 
+  dev, 
+  hostname: dev ? hostname : undefined, // Only specify hostname in dev
+  port 
+});
 const handle = app.getRequestHandler();
 
 // Connect to MongoDB
@@ -39,7 +43,8 @@ app.prepare().then(() => {
   startWorker(5); // Check every 5 minutes
   
   // Start the server
-  server.listen(port, () => {
+  server.listen(port, hostname, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
+    console.log(`> Environment: ${process.env.NODE_ENV}`);
   });
 }); 

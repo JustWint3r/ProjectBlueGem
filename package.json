@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:server": "ts-node --project tsconfig.server.json -r tsconfig-paths/register src/server.ts",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "dev:server": "ts-node --project tsconfig.server.json -r tsconfig-paths/register src/server.ts"
+    "start": "NODE_ENV=production ts-node --project tsconfig.server.json -r tsconfig-paths/register src/server.ts",
+    "start:windows": "set NODE_ENV=production&&ts-node --project tsconfig.server.json -r tsconfig-paths/register src/server.ts",
+    "lint": "next lint"
   },
   "dependencies": {
     "axios": "^1.9.0",
