@@ -29,7 +29,7 @@ The project has been modified to work with Vercel's serverless architecture:
    - In "Network Access," whitelist your IP or use `0.0.0.0/0` to allow all IPs
 4. Get your connection string:
    - Click "Connect" → "Connect your application"
-   - Copy the URI string that looks like: `mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/...`
+
 
 ### 2. Environment Variables
 
