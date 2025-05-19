@@ -37,7 +37,7 @@ Set these in your Vercel project settings:
 
 ```
 MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/steam_market_monitor?retryWrites=true&w=majority
-MAX_PAGES_TO_SCAN=10
+MAX_PAGES_TO_SCAN=50
 ```
 
 ### 3. Deployment
@@ -53,7 +53,7 @@ MAX_PAGES_TO_SCAN=10
 
 1. Wait for deployment to complete
 2. Check Vercel Logs to verify that cron jobs are running:
-   - `/api/scheduled-scan` should run every 5 minutes
+   - `/api/scheduled-scan` should run once daily at midnight
    - `/api/cleanup-items` should run every 6 hours
 
 ## Limitations

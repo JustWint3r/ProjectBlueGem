@@ -6,8 +6,8 @@ export async function POST() {
   try {
     await dbConnect();
     
-    // Start a scan of the market
-    const matchingItems = await scanMarket(10); // Scan 10 pages
+    // Start a scan of the market (manual scans get more pages)
+    const matchingItems = await scanMarket(30); // Scan 30 pages
     
     // Cleanup old items
     await cleanupItems();

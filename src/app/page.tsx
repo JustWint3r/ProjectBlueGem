@@ -132,7 +132,7 @@ export default function Home() {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">Desert Eagle | Heat Treated Monitor</h1>
           <p className="mt-2 text-gray-600">
-            Monitoring Steam Market for specific pattern seeds. Refreshes every 30 seconds.
+            Monitoring Steam Market for specific pattern seeds. Database refreshes every 30 seconds.
           </p>
         </div>
 
@@ -159,7 +159,7 @@ export default function Home() {
           <p>
             This tool monitors the Steam Market for Desert Eagle | Heat Treated skins with specific paint seeds.
             <br />
-            Data refreshes automatically every 30 seconds.
+            Data refreshes automatically every 30 seconds. Full market scans run once daily at midnight.
           </p>
         </div>
       </div>
