@@ -30,16 +30,6 @@ The project has been modified to work with Vercel's serverless architecture:
 4. Get your connection string:
    - Click "Connect" → "Connect your application"
 
-
-### 2. Environment Variables
-
-Set these in your Vercel project settings:
-
-```
-MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/steam_market_monitor?retryWrites=true&w=majority
-MAX_PAGES_TO_SCAN=50
-```
-
 ### 3. Deployment
 
 1. Push your code to GitHub
