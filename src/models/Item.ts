@@ -25,4 +25,7 @@ const ItemSchema: Schema = new Schema({
 // Create a compound index for unique combinations of paintSeed and floatValue
 ItemSchema.index({ paintSeed: 1, floatValue: 1 }, { unique: true });
 
+// Add index for the query in the items API route
+ItemSchema.index({ isAvailable: 1, found: -1 });
+
 export default mongoose.models.Item || mongoose.model<IItem>('Item', ItemSchema); 
