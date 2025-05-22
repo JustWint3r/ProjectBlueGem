@@ -21,13 +21,20 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastFetchTime, setLastFetchTime] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch items when component mounts and periodically after that
   useEffect(() => {
     const fetchItems = async () => {
       try {
         setLoading(true);
+        setError(null);
         const response = await fetch('/api/items');
+        
+        if (!response.ok) {
+          throw new Error(`Database error: ${response.statusText}`);
+        }
+        
         const data = await response.json();
         
         // Check for new or removed items if we have previous data
@@ -39,6 +46,11 @@ export default function Home() {
         setLastFetchTime(new Date());
       } catch (error) {
         console.error('Error fetching items:', error);
+        setError('Unable to connect to database. Please try again later.');
+        // Keep previous items data if any
+        if (items.length === 0) {
+          setItems([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -110,20 +122,37 @@ export default function Home() {
   const handleScan = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await fetch('/api/scan', { method: 'POST' });
+      
+      if (!response.ok) {
+        throw new Error(`Scan error: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       
       if (data.success) {
         // Refetch items
         const itemsResponse = await fetch('/api/items');
+        if (!itemsResponse.ok) {
+          throw new Error(`Database error: ${itemsResponse.statusText}`);
+        }
         const itemsData = await itemsResponse.json();
         setItems(itemsData);
       }
     } catch (error) {
       console.error('Error scanning market:', error);
+      setError('Error scanning market. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Retry fetching items
+  const handleRetry = () => {
+    setError(null);
+    setLoading(true);
+    // The useEffect will automatically retry fetching
   };
 
   return (
@@ -139,18 +168,37 @@ export default function Home() {
         <div className="bg-white shadow-md rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-800">Current Listings</h2>
-            <button
-              onClick={handleScan}
-              disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition"
-            >
-              {loading ? 'Scanning...' : 'Scan Now'}
-            </button>
+            <div className="flex gap-2">
+              {error && (
+                <button
+                  onClick={handleRetry}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition"
+                >
+                  Retry
+                </button>
+              )}
+              <button
+                onClick={handleScan}
+                disabled={loading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition"
+              >
+                {loading ? 'Scanning...' : 'Scan Now'}
+              </button>
+            </div>
           </div>
 
           <div className="mb-6">
             <TargetSeedList targetSeeds={TARGET_PAINT_SEEDS} />
           </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-center">
+              <p className="text-red-700">{error}</p>
+              <p className="text-sm text-red-600 mt-2">
+                This is typically caused by database timeout. Try again in a minute.
+              </p>
+            </div>
+          )}
 
           <ItemGrid items={items} loading={loading} />
         </div>
